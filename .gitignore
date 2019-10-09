@@ -111,3 +111,7 @@ venv.bak/
 
 # output files
 .csv
+
+# zoql files
+.zoql
+.zql
