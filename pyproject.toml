@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "zuora-aqua-client-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "Run ZOQL queries through AQuA from the command line"
 authors = ["Janos Molnar <janosmolnar1001@gmail.com>"]
 
@@ -14,7 +14,7 @@ pytest = "^3.0"
 ipdb = "^0.12.2"
 
 [tool.poetry.scripts]
-zacc = "zuora_aqua_client_cli.run_zooql:main"
+zacc = "zuora_aqua_client_cli.run_zoql:main"
 
 [build-system]
 requires = ["poetry>=0.12"]
