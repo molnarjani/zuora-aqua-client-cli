@@ -11,6 +11,7 @@ def read_conf(filename):
     config.read(filename)
     return config
 
+
 def get_bearer_token(bearer_data):
     print('Obtaining bearer token...')
     r = requests.post('https://rest.zuora.com/oauth/token', data=bearer_data)
@@ -18,6 +19,7 @@ def get_bearer_token(bearer_data):
     print('Success!')
     bearer_token = r.json()['access_token']
     return bearer_token
+
 
 def read_zoql_file(filename):
     with open(filename, 'r') as f:
@@ -55,6 +57,7 @@ def start_job(table_name, zoql, headers):
 
     return job_url
 
+
 def poll_job(job_url, headers):
     print('Polling status...')
     status = 'pending'
@@ -79,20 +82,23 @@ def poll_job(job_url, headers):
 
     return file_url
 
+
 def get_file_content(file_url, headers):
     r = requests.get(file_url, headers=headers)
     return r.text
+
 
 def write_to_output_file(content):
     output_filename = 'out.csv'
     with open(output_filename, 'w+') as out:
         out.write(content)
 
+
 @click.command()
 @click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-z', '--zoql', default='input.zoql', help='ZOQL file to be executed', type=click.Path(exists=True), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
-def main(config_filename, zoql, environment):     
+def main(config_filename, zoql, environment):
     config = read_conf(config_filename)
 
     try:
@@ -101,9 +107,8 @@ def main(config_filename, zoql, environment):
             'client_secret': config[environment]['client_secret'],
             'grant_type': 'client_credentials'
         }
-    except KeyError as e:
+    except KeyError:
         raise click.ClickException(f"Environment '{environment}' not configured in '{config_filename}'")
-
 
     bearer_token = get_bearer_token(bearer_data)
 
@@ -123,6 +128,7 @@ def main(config_filename, zoql, environment):
     write_to_output_file(content)
 
     print('Completed!')
+
 
 if __name__ == '__main__':
     main()
