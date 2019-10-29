@@ -1,13 +1,14 @@
 import time
+import click
 import requests
 
 import configparser
 
 
-def read_conf():
+def read_conf(filename):
     config = configparser.ConfigParser()
     # TODO: make it configurable (alternatively try to read it from some default places line ~/.zuora_oauth.ini)
-    config.read('zuora_oauth.ini')
+    config.read(filename)
     return config
 
 def get_bearer_token(bearer_data):
@@ -18,8 +19,8 @@ def get_bearer_token(bearer_data):
     bearer_token = r.json()['access_token']
     return bearer_token
 
-def read_zoql_file():
-    with open('test.zoql', 'r') as f:
+def read_zoql_file(filename):
+    with open(filename, 'r') as f:
         lines = [l.strip() for l in f.readlines()]
         table_name = lines[0]
         zoql = lines[1]
@@ -27,7 +28,7 @@ def read_zoql_file():
         return table_name, zoql
 
 
-def start_job(table_name, zoql):
+def start_job(table_name, zoql, headers):
     query_url = "https://rest.zuora.com/v1/batch-query/"
     query_payload = {
         "format": "csv",
@@ -54,7 +55,7 @@ def start_job(table_name, zoql):
 
     return job_url
 
-def poll_job(job_url):
+def poll_job(job_url, headers):
     print('Polling status...')
     status = 'pending'
     trial_count = 0
@@ -78,7 +79,7 @@ def poll_job(job_url):
 
     return file_url
 
-def get_file_content(file_url):
+def get_file_content(file_url, headers):
     r = requests.get(file_url, headers=headers)
     return r.text
 
@@ -87,26 +88,38 @@ def write_to_output_file(content):
     with open(output_filename, 'w+') as out:
         out.write(content)
 
-def main():
-    config = read_conf()
-    bearer_data = {
-        'client_id': config['production']['client_id'],
-        'client_secret': config['production']['client_secret'],
-        'grant_type': 'client_credentials'
-    }
+@click.command()
+@click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
+@click.option('-z', '--zoql', default='input.zoql', help='ZOQL file to be executed', type=click.Path(exists=True), show_default=True)
+@click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
+def main(config_filename, zoql, environment):     
+    config = read_conf(config_filename)
+
+    try:
+        bearer_data = {
+            'client_id': config[environment]['client_id'],
+            'client_secret': config[environment]['client_secret'],
+            'grant_type': 'client_credentials'
+        }
+    except KeyError as e:
+        raise click.ClickException(f"Environment '{environment}' not configured in '{config_filename}'")
+
 
     bearer_token = get_bearer_token(bearer_data)
 
     headers = {
-        'Content-Type': "application/json",
-        'Authorization': "Bearer {}".format(bearer_token),
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {bearer_token}'
     }
 
-    table_name, zoql = read_zoql_file()
+    table_name, zoql = read_zoql_file(zoql)
 
-    job_url = start_job(table_name, zoql)
-    file_url = poll_job(job_url)
-    content = get_file_content(file_url)
+    # TODO: Make reuqest session instead of 3 separate requests
+    # TODO: Pass headers to request session
+    job_url = start_job(table_name, zoql, headers)
+    file_url = poll_job(job_url, headers)
+    content = get_file_content(file_url, headers)
+
     write_to_output_file(content)
 
     print('Completed!')
