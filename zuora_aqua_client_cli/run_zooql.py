@@ -87,8 +87,7 @@ def write_to_output_file(content):
     with open(output_filename, 'w+') as out:
         out.write(content)
 
-
-if __name__ == '__main__':
+def main():
     config = read_conf()
     bearer_data = {
         'client_id': config['production']['client_id'],
@@ -111,3 +110,6 @@ if __name__ == '__main__':
     write_to_output_file(content)
 
     print('Completed!')
+
+if __name__ == '__main__':
+    main()
