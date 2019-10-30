@@ -35,7 +35,7 @@ Options:
   --help                          Show this message and exit.
 ```
 
-#### Describe
+#### Describe [WIP]
 ```
 Usage: zacc describe [OPTIONS] RESOURCE
 
