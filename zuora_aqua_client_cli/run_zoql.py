@@ -3,6 +3,7 @@ import click
 import requests
 
 import configparser
+import xml.etree.ElementTree as ET
 
 from .consts import ZUORA_RESOURCES
 
@@ -144,7 +145,20 @@ def describe(resource, config_filename, environment):
     headers = get_headers(config, environment)
 
     response = get_resource(resource, headers)
-    click.echo(response)
+    root = ET.fromstring(response)
+    resource_name = root[1].text
+    fields = root[2]
+    click.echo(resource_name)
+    for child in fields:
+        name = ''
+        label = ''
+        for field in child:
+            if field.tag == 'name':
+                name = field.text
+            elif field.tag == 'label':
+                label = field.text
+
+        click.echo(f'  {name} - {label}')
 
 
 @main.command()

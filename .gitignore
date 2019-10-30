@@ -114,7 +114,8 @@ venv.bak/
 .idea
 
 # output files
-.csv
+*.csv
+*.xml
 
 # zoql files
 *.zoql
