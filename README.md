@@ -2,8 +2,9 @@
 
 Run ZOQL queries through AQuA from the command line
 
-#### Usage
+# Usage
 
+#### Zacc
 ```
 Usage: zacc [OPTIONS] COMMAND [ARGS]...
 
@@ -44,3 +45,7 @@ Usage: zacc describe [OPTIONS] RESOURCE
 Options:
   --help  Show this message and exit.
 ```
+
+# Useful stuff
+Has a lot of graphs on Resource relationships:
+https://community.zuora.com/t5/Engineering-Blog/AQUA-An-Introduction-to-Join-Processing/ba-p/13262
