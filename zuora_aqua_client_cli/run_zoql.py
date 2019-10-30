@@ -120,14 +120,18 @@ def main():
     pass
 
 
+def get_resource(resource, headers):
+    r = requests.get(f'https://rest.zuora.com/v1/describe/{resource}', headers=headers)
+    r.raise_for_status()
+    return r.text
+
+
 @main.command()
 @click.argument('resource')
 @click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
 def describe(resource, config_filename, environment):
     """ List available fields of Zuora resource """
-    config = read_conf(config_filename)
-    headers = get_headers(config, environment)
     if resource not in ZUORA_RESOURCES:
         click.echo(click.style(f"Resource cannot be found '{resource}', available resources:", fg='red'))
         for resource in ZUORA_RESOURCES:
@@ -136,7 +140,11 @@ def describe(resource, config_filename, environment):
         click.echo()
         raise click.ClickException('Exiting, bye.')
 
-    click.echo(headers)
+    config = read_conf(config_filename)
+    headers = get_headers(config, environment)
+
+    response = get_resource(resource, headers)
+    click.echo(response)
 
 
 @main.command()
