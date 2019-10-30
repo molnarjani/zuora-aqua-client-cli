@@ -30,7 +30,7 @@ def get_headers(config, environment):
         'Authorization': f'Bearer {bearer_token}'
     }
 
-    return  headers
+    return headers
 
 
 def get_bearer_token(bearer_data):
@@ -125,9 +125,9 @@ def main():
 @click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
 def describe(resource, config_filename, environment):
+    """ List available fields of Zuora resource """
     config = read_conf(config_filename)
     headers = get_headers(config, environment)
-    """ List available fields of Zuora resource """
     if resource not in ZUORA_RESOURCES:
         click.echo(click.style(f"Resource cannot be found '{resource}', available resources:", fg='red'))
         for resource in ZUORA_RESOURCES:
@@ -136,7 +136,7 @@ def describe(resource, config_filename, environment):
         click.echo()
         raise click.ClickException('Exiting, bye.')
 
-    click.echo(resource)
+    click.echo(headers)
 
 
 @main.command()
