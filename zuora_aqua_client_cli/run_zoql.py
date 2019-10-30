@@ -46,13 +46,10 @@ def get_bearer_token(bearer_data):
 def read_zoql_file(filename):
     with open(filename, 'r') as f:
         lines = [l.strip() for l in f.readlines()]
-        table_name = lines[0]
-        zoql = lines[1]
-
-        return table_name, zoql
+        return ''.join(lines)
 
 
-def start_job(table_name, zoql, headers):
+def start_job(zoql, headers):
     query_url = "https://rest.zuora.com/v1/batch-query/"
     query_payload = {
         "format": "csv",
@@ -61,7 +58,6 @@ def start_job(table_name, zoql, headers):
         "useQueryLabels": "true",
         "dateTimeUtc": "true",
         "queries": [{
-            "name": table_name,
             "query": zoql,
             "type": "zoqlexport"
         }]
@@ -172,11 +168,11 @@ def query(config_filename, zoql, output, environment, max_retries):
     config = read_conf(config_filename)
     headers = get_headers(config, environment)
 
-    table_name, zoql = read_zoql_file(zoql)
+    zoql = read_zoql_file(zoql)
 
     # TODO: Make reuqest session instead of 3 separate requests
     # TODO: Pass headers to request session
-    job_url = start_job(table_name, zoql, headers)
+    job_url = start_job(zoql, headers)
     file_url = poll_job(job_url, headers, max_retries)
     content = get_file_content(file_url, headers)
 
