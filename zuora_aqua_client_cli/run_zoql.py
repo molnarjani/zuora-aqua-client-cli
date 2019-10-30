@@ -88,17 +88,17 @@ def get_file_content(file_url, headers):
     return r.text
 
 
-def write_to_output_file(content):
-    output_filename = 'out.csv'
-    with open(output_filename, 'w+') as out:
+def write_to_output_file(outfile, content):
+    with open(outfile, 'w+') as out:
         out.write(content)
 
 
 @click.command()
 @click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-z', '--zoql', default='input.zoql', help='ZOQL file to be executed', type=click.Path(exists=True), show_default=True)
+@click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
-def main(config_filename, zoql, environment):
+def main(config_filename, zoql, output, environment):
     config = read_conf(config_filename)
 
     try:
@@ -125,7 +125,10 @@ def main(config_filename, zoql, environment):
     file_url = poll_job(job_url, headers)
     content = get_file_content(file_url, headers)
 
-    write_to_output_file(content)
+    if output is not None:
+        write_to_output_file(output, content)
+    else:
+        click.echo(content)
 
     print('Completed!')
 
