@@ -14,6 +14,25 @@ def read_conf(filename):
     return config
 
 
+def get_headers(config, environment):
+    try:
+        bearer_data = {
+            'client_id': config[environment]['client_id'],
+            'client_secret': config[environment]['client_secret'],
+            'grant_type': 'client_credentials'
+        }
+    except KeyError:
+        raise click.ClickException(f"Environment '{environment}' not configured in '{config}'")
+
+    bearer_token = get_bearer_token(bearer_data)
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {bearer_token}'
+    }
+
+    return  headers
+
+
 def get_bearer_token(bearer_data):
     click.echo('Obtaining bearer token...')
     r = requests.post('https://rest.zuora.com/oauth/token', data=bearer_data)
@@ -103,7 +122,11 @@ def main():
 
 @main.command()
 @click.argument('resource')
-def describe(resource):
+@click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
+@click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
+def describe(resource, config_filename, environment):
+    config = read_conf(config_filename)
+    headers = get_headers(config, environment)
     """ List available fields of Zuora resource """
     if resource not in ZUORA_RESOURCES:
         click.echo(click.style(f"Resource cannot be found '{resource}', available resources:", fg='red'))
@@ -125,22 +148,7 @@ def describe(resource):
 def query(config_filename, zoql, output, environment, max_retries):
     """ Run ZOQL Query """
     config = read_conf(config_filename)
-
-    try:
-        bearer_data = {
-            'client_id': config[environment]['client_id'],
-            'client_secret': config[environment]['client_secret'],
-            'grant_type': 'client_credentials'
-        }
-    except KeyError:
-        raise click.ClickException(f"Environment '{environment}' not configured in '{config_filename}'")
-
-    bearer_token = get_bearer_token(bearer_data)
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {bearer_token}'
-    }
+    headers = get_headers(config, environment)
 
     table_name, zoql = read_zoql_file(zoql)
 
