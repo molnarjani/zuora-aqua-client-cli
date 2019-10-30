@@ -4,6 +4,8 @@ import requests
 
 import configparser
 
+from .consts import ZUORA_RESOURCES
+
 
 def read_conf(filename):
     config = configparser.ConfigParser()
@@ -13,10 +15,10 @@ def read_conf(filename):
 
 
 def get_bearer_token(bearer_data):
-    print('Obtaining bearer token...')
+    click.echo('Obtaining bearer token...')
     r = requests.post('https://rest.zuora.com/oauth/token', data=bearer_data)
     r.raise_for_status()
-    print('Success!')
+    click.echo(click.style('Success!', fg='green'))
     bearer_token = r.json()['access_token']
     return bearer_token
 
@@ -51,23 +53,23 @@ def start_job(table_name, zoql, headers):
     try:
         job_id = r.json()['id']
         job_url = query_url + '/jobs/{}'.format(job_id)
-        print('Started job with ID: {}'.format(job_id))
+        click.echo(click.style(f"Started job with ID: {job_id}", fg='green'))
     except KeyError:
-        print(r.text)
+        click.echo(click.style(r.text, fg='red'))
 
     return job_url
 
 
-def poll_job(job_url, headers):
-    print('Polling status...')
+def poll_job(job_url, headers, max_retries):
+    click.echo('Polling status...')
     status = 'pending'
     trial_count = 0
-    MAX_TRIALS = 10
+    MAX_TRIALS = max_retries
     while status != 'completed':
         r = requests.get(job_url, headers=headers)
         r.raise_for_status()
         status = r.json()['status']
-        print('Job status: {}...'.format(status))
+        click.echo(f'Job status: {status}...')
         if status == 'completed':
             break
 
@@ -75,7 +77,8 @@ def poll_job(job_url, headers):
 
         trial_count = trial_count + 1
         if trial_count >= MAX_TRIALS:
-            raise Exception('max trials exceeded')
+            click.echo(click.style("Max trials exceeded! You can increase it by '-m [number of retries]' option.", fg='red'))
+            raise click.ClickException('Exiting, bye.')
 
     file_id = r.json()['batches'][0]['fileId']
     file_url = 'https://zuora.com/apps/api/file/{}'.format(file_id)
@@ -93,12 +96,34 @@ def write_to_output_file(outfile, content):
         out.write(content)
 
 
-@click.command()
+@click.group()
+def main():
+    pass
+
+
+@main.command()
+@click.argument('resource')
+def describe(resource):
+    """ List available fields of Zuora resource """
+    if resource not in ZUORA_RESOURCES:
+        click.echo(click.style(f"Resource cannot be found '{resource}', available resources:", fg='red'))
+        for resource in ZUORA_RESOURCES:
+            click.echo(click.style(resource, fg='green'))
+
+        click.echo()
+        raise click.ClickException('Exiting, bye.')
+
+    click.echo(resource)
+
+
+@main.command()
 @click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-z', '--zoql', default='input.zoql', help='ZOQL file to be executed', type=click.Path(exists=True), show_default=True)
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
-def main(config_filename, zoql, output, environment):
+@click.option('-m', '--max-retries', default=10, help='Maximum retries for query', type=click.INT)
+def query(config_filename, zoql, output, environment, max_retries):
+    """ Run ZOQL Query """
     config = read_conf(config_filename)
 
     try:
@@ -122,15 +147,13 @@ def main(config_filename, zoql, output, environment):
     # TODO: Make reuqest session instead of 3 separate requests
     # TODO: Pass headers to request session
     job_url = start_job(table_name, zoql, headers)
-    file_url = poll_job(job_url, headers)
+    file_url = poll_job(job_url, headers, max_retries)
     content = get_file_content(file_url, headers)
 
     if output is not None:
         write_to_output_file(output, content)
     else:
-        click.echo(content)
-
-    print('Completed!')
+        click.echo(click.style(content, fg='green'))
 
 
 if __name__ == '__main__':

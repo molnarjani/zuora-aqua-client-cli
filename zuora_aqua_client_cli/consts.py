@@ -1,4 +1,4 @@
-ZUORA_RESOURCE = [
+ZUORA_RESOURCES = [
     'Account',
     'AccountingCode',
     'BillingRun',
