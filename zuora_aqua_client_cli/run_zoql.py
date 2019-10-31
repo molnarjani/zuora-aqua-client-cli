@@ -1,3 +1,4 @@
+import os
 import time
 import click
 import requests
@@ -72,6 +73,7 @@ def start_job(zoql, headers):
         click.echo(click.style(f"Started job with ID: {job_id}", fg='green'))
     except KeyError:
         click.echo(click.style(r.text, fg='red'))
+        raise click.ClickException('Exiting, bye.')
 
     return job_url
 
@@ -159,7 +161,7 @@ def describe(resource, config_filename, environment):
 
 @main.command()
 @click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
-@click.option('-z', '--zoql', default='input.zoql', help='ZOQL file to be executed', type=click.Path(exists=True), show_default=True)
+@click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
 @click.option('-m', '--max-retries', default=10, help='Maximum retries for query', type=click.INT)
@@ -168,7 +170,9 @@ def query(config_filename, zoql, output, environment, max_retries):
     config = read_conf(config_filename)
     headers = get_headers(config, environment)
 
-    zoql = read_zoql_file(zoql)
+    # If a file path is passed, read it else keep it as a string
+    if os.path.exists(zoql):
+        zoql = read_zoql_file(zoql)
 
     # TODO: Make reuqest session instead of 3 separate requests
     # TODO: Pass headers to request session
