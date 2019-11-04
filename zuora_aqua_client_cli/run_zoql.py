@@ -47,7 +47,7 @@ def get_bearer_token(bearer_data):
 def read_zoql_file(filename):
     with open(filename, 'r') as f:
         lines = [l.strip() for l in f.readlines()]
-        return ''.join(lines)
+        return '\n'.join(lines)
 
 
 def start_job(zoql, headers):
@@ -146,6 +146,8 @@ def describe(resource, config_filename, environment):
     root = ET.fromstring(response)
     resource_name = root[1].text
     fields = root[2]
+    related_objects = root[3]
+
     click.echo(resource_name)
     for child in fields:
         name = ''
@@ -157,6 +159,19 @@ def describe(resource, config_filename, environment):
                 label = field.text
 
         click.echo(f'  {name} - {label}')
+
+    click.echo('Related Objects')
+    for child in related_objects:
+        name = ''
+        label = ''
+        object_type = child.items()[0][1].split('/')[-1]
+        for field in child:
+            if field.tag == 'name':
+                name = field.text
+            elif field.tag == 'label':
+                label = field.text
+
+        click.echo(f'  {name}<{object_type}> - {label}')
 
 
 @main.command()
