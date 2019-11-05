@@ -1,6 +1,7 @@
 ZUORA_RESOURCES = [
     'Account',
     'AccountingCode',
+    'Amendment',
     'BillingRun',
     'ChargeMetrics',
     'Contact',
