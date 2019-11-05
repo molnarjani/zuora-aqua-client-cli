@@ -185,7 +185,7 @@ def query(config_filename, zoql, output, environment, max_retries):
     config = read_conf(config_filename)
     headers = get_headers(config, environment)
 
-    # In order to check if it is a valid file, first we check if it looks like a path,
+    # In order to check if file exists, first we check if it looks like a path,
     # by checking if the dirname is valid, then check if the file exists.
     # If we would only check if the file exist, we'd pass the filename as an inline ZOQL query
     if os.path.exists(os.path.dirname(zoql)):
