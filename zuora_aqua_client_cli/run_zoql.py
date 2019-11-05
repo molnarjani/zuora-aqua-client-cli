@@ -195,7 +195,6 @@ def query(config_filename, zoql, output, environment, max_retries):
             click.echo(click.style(f"File does not exist '{zoql}'", fg='red'))
             raise click.ClickException('Exiting, bye.')
 
-
     # TODO: Make reuqest session instead of 3 separate requests
     # TODO: Pass headers to request session
     job_url = start_job(zoql, headers)
