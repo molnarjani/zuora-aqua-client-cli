@@ -179,7 +179,7 @@ def describe(resource, config_filename, environment):
 @click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
-@click.option('-m', '--max-retries', default=10, help='Maximum retries for query', type=click.INT)
+@click.option('-m', '--max-retries', default=30, help='Maximum retries for query', type=click.INT)
 def query(config_filename, zoql, output, environment, max_retries):
     """ Run ZOQL Query """
     config = read_conf(config_filename)
