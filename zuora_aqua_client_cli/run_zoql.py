@@ -26,7 +26,7 @@ def get_headers(config, environment):
     except KeyError:
         raise click.ClickException(f"Environment '{environment}' not configured in '{config}'")
 
-    bearer_token = get_bearer_token(bearer_data)
+    bearer_token = get_bearer_token(bearer_data, environment)
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {bearer_token}'
@@ -35,9 +35,10 @@ def get_headers(config, environment):
     return headers
 
 
-def get_bearer_token(bearer_data):
+def get_bearer_token(bearer_data, environment):
     click.echo('Obtaining bearer token...')
-    r = requests.post('https://rest.zuora.com/oauth/token', data=bearer_data)
+    url = 'https://rest.zuora.com/oauth/token' if environment == 'prod' else 'https://rest.apisandbox.zuora.com/oauth/token'
+    r = requests.post(url, data=bearer_data)
     r.raise_for_status()
     click.echo(click.style('Success!', fg='green'))
     bearer_token = r.json()['access_token']
@@ -50,8 +51,8 @@ def read_zoql_file(filename):
         return '\n'.join(lines)
 
 
-def start_job(zoql, headers):
-    query_url = "https://rest.zuora.com/v1/batch-query/"
+def start_job(zoql, headers, environment):
+    query_url = "https://rest.zuora.com/v1/batch-query/" if environment == 'prod' else "https://rest.apisandbox.zuora.com/v1/batch-query/"
     query_payload = {
         "format": "csv",
         "version": "1.1",
@@ -78,7 +79,7 @@ def start_job(zoql, headers):
     return job_url
 
 
-def poll_job(job_url, headers, max_retries):
+def poll_job(job_url, headers, max_retries, environment):
     click.echo('Polling status...')
     status = 'pending'
     trial_count = 0
@@ -99,7 +100,7 @@ def poll_job(job_url, headers, max_retries):
             raise click.ClickException('Exiting, bye.')
 
     file_id = r.json()['batches'][0]['fileId']
-    file_url = 'https://zuora.com/apps/api/file/{}'.format(file_id)
+    file_url = 'https://zuora.com/apps/api/file/{}'.format(file_id) if environment == 'prod' else 'https://apisandbox.zuora.com/apps/api/file/{}'.format(file_id)
 
     return file_url
 
@@ -119,8 +120,9 @@ def main():
     pass
 
 
-def get_resource(resource, headers):
-    r = requests.get(f'https://rest.zuora.com/v1/describe/{resource}', headers=headers)
+def get_resource(resource, headers, environment):
+    url = f'https://rest.zuora.com/v1/describe/{resource}' if environment == 'prod' else f'https://rest.apisandbox.zuora.com/v1/describe/{resource}'
+    r = requests.get(url, headers=headers)
     r.raise_for_status()
     return r.text
 
@@ -142,7 +144,7 @@ def describe(resource, config_filename, environment):
     config = read_conf(config_filename)
     headers = get_headers(config, environment)
 
-    response = get_resource(resource, headers)
+    response = get_resource(resource, headers, environment)
     root = ET.fromstring(response)
     resource_name = root[1].text
     fields = root[2]
@@ -197,8 +199,8 @@ def query(config_filename, zoql, output, environment, max_retries):
 
     # TODO: Make reuqest session instead of 3 separate requests
     # TODO: Pass headers to request session
-    job_url = start_job(zoql, headers)
-    file_url = poll_job(job_url, headers, max_retries)
+    job_url = start_job(zoql, headers, environment)
+    file_url = poll_job(job_url, headers, max_retries, environment)
     content = get_file_content(file_url, headers)
 
     if output is not None:
