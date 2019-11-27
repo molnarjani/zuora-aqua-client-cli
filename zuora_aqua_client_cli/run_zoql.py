@@ -107,7 +107,7 @@ def poll_job(job_url, headers, max_retries, environment):
 
 def get_file_content(file_url, headers):
     r = requests.get(file_url, headers=headers)
-    return r.text
+    return r.content.decode("utf-8")
 
 
 def write_to_output_file(outfile, content):
