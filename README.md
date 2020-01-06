@@ -12,8 +12,9 @@ Options:
   --help  Show this message and exit.
 
 Commands:
+  bearer    Prints bearer than exits
   describe  List available fields of Zuora resource
-  query     Run ZOQL Query                        Show this message and exit.
+  query     Run ZOQL Query
 ```
 
 #### Query
@@ -36,14 +37,34 @@ Options:
   --help                          Show this message and exit.
 ```
 
-#### Describe [WIP]
+#### Describe
 ```
 Usage: zacc describe [OPTIONS] RESOURCE
 
   List available fields of Zuora resource
 
 Options:
-  --help  Show this message and exit.
+  -c, --config-filename PATH      Config file containing Zuora ouath
+                                  credentials  [default: zuora_oauth.ini]
+  -e, --environment [prod|preprod|local]
+                                  Zuora environment to execute on  [default:
+                                  local]
+  --help                          Show this message and exit.
+```
+
+#### Bearer
+```
+Usage: zacc bearer [OPTIONS]
+
+  Prints bearer than exits
+
+Options:
+  -c, --config-filename PATH      Config file containing Zuora ouath
+                                  credentials  [default: zuora_oauth.ini]
+  -e, --environment [prod|preprod|local]
+                                  Zuora environment to execute on  [default:
+                                  local]
+  --help                          Show this message and exit.
 ```
 
 # Useful stuff
