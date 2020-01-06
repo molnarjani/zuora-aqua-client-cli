@@ -175,7 +175,16 @@ def describe(resource, config_filename, environment):
 
         click.echo(f'  {name}<{object_type}> - {label}')
 
+@main.command()
+@click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
+@click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
+def bearer(config_filename, environment):
+    """ Prints bearer than exits """
+    config = read_conf(config_filename)
+    headers = get_headers(config, environment)
 
+    click.echo(headers['Authorization'])
+    
 @main.command()
 @click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
