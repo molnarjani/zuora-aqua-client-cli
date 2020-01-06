@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "zuora-aqua-client-cli"
-version = "0.1.11"
+version = "0.1.12"
 description = "Run ZOQL queries through AQuA from the command line"
 authors = ["Janos Molnar <janosmolnar1001@gmail.com>"]
 readme = 'README.md'
