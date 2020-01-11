@@ -11,11 +11,13 @@ from pathlib import Path
 
 HOME = os.environ['HOME']
 DEFAULT_CONFIG_PATH = Path(HOME) / Path('.zacc.ini')
+production = False
 
 
-def read_conf(filename):
+def read_conf(filename, environment):
     config = configparser.ConfigParser()
     config.read(filename)
+    production = config[environment].get('production') == 'true'
     return config
 
 
@@ -29,7 +31,7 @@ def get_headers(config, environment):
     except KeyError:
         raise click.ClickException(f"Environment '{environment}' not configured in '{config}'")
 
-    bearer_token = get_bearer_token(bearer_data, environment)
+    bearer_token = get_bearer_token(bearer_data)
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {bearer_token}'
@@ -38,9 +40,9 @@ def get_headers(config, environment):
     return headers
 
 
-def get_bearer_token(bearer_data, environment):
+def get_bearer_token(bearer_data):
     click.echo('Obtaining bearer token...')
-    url = 'https://rest.zuora.com/oauth/token' if environment == 'prod' else 'https://rest.apisandbox.zuora.com/oauth/token'
+    url = 'https://rest.zuora.com/oauth/token' if production else 'https://rest.apisandbox.zuora.com/oauth/token'
     r = requests.post(url, data=bearer_data)
     r.raise_for_status()
     click.echo(click.style('Success!', fg='green'))
@@ -54,8 +56,8 @@ def read_zoql_file(filename):
         return '\n'.join(lines)
 
 
-def start_job(zoql, headers, environment):
-    query_url = "https://rest.zuora.com/v1/batch-query/" if environment == 'prod' else "https://rest.apisandbox.zuora.com/v1/batch-query/"
+def start_job(zoql, headers):
+    query_url = "https://rest.zuora.com/v1/batch-query/" if production else "https://rest.apisandbox.zuora.com/v1/batch-query/"
     query_payload = {
         "format": "csv",
         "version": "1.1",
@@ -82,7 +84,7 @@ def start_job(zoql, headers, environment):
     return job_url
 
 
-def poll_job(job_url, headers, max_retries, environment):
+def poll_job(job_url, headers, max_retries):
     click.echo('Polling status...')
     status = 'pending'
     trial_count = 0
@@ -103,7 +105,7 @@ def poll_job(job_url, headers, max_retries, environment):
             raise click.ClickException('Exiting, bye.')
 
     file_id = r.json()['batches'][0]['fileId']
-    file_url = 'https://zuora.com/apps/api/file/{}'.format(file_id) if environment == 'prod' else 'https://apisandbox.zuora.com/apps/api/file/{}'.format(file_id)
+    file_url = 'https://zuora.com/apps/api/file/{}'.format(file_id) if production else 'https://apisandbox.zuora.com/apps/api/file/{}'.format(file_id)
 
     return file_url
 
@@ -123,8 +125,8 @@ def main():
     pass
 
 
-def get_resource(resource, headers, environment):
-    url = f'https://rest.zuora.com/v1/describe/{resource}' if environment == 'prod' else f'https://rest.apisandbox.zuora.com/v1/describe/{resource}'
+def get_resource(resource, headers):
+    url = f'https://rest.zuora.com/v1/describe/{resource}' if production else f'https://rest.apisandbox.zuora.com/v1/describe/{resource}'
     r = requests.get(url, headers=headers)
     r.raise_for_status()
     return r.text
@@ -144,10 +146,10 @@ def describe(resource, config_filename, environment):
         click.echo()
         raise click.ClickException('Exiting, bye.')
 
-    config = read_conf(config_filename)
+    config = read_conf(config_filename, environment)
     headers = get_headers(config, environment)
 
-    response = get_resource(resource, headers, environment)
+    response = get_resource(resource, headers)
     root = ET.fromstring(response)
     resource_name = root[1].text
     fields = root[2]
@@ -184,7 +186,7 @@ def describe(resource, config_filename, environment):
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
 def bearer(config_filename, environment):
     """ Prints bearer than exits """
-    config = read_conf(config_filename)
+    config = read_conf(config_filename, environment)
     headers = get_headers(config, environment)
 
     click.echo(headers['Authorization'])
@@ -198,7 +200,7 @@ def bearer(config_filename, environment):
 @click.option('-m', '--max-retries', default=30, help='Maximum retries for query', type=click.INT)
 def query(config_filename, zoql, output, environment, max_retries):
     """ Run ZOQL Query """
-    config = read_conf(config_filename)
+    config = read_conf(config_filename, environment)
     headers = get_headers(config, environment)
 
     # In order to check if file exists, first we check if it looks like a path,
@@ -213,8 +215,8 @@ def query(config_filename, zoql, output, environment, max_retries):
 
     # TODO: Make reuqest session instead of 3 separate requests
     # TODO: Pass headers to request session
-    job_url = start_job(zoql, headers, environment)
-    file_url = poll_job(job_url, headers, max_retries, environment)
+    job_url = start_job(zoql, headers)
+    file_url = poll_job(job_url, headers, max_retries)
     content = get_file_content(file_url, headers)
 
     if output is not None:
