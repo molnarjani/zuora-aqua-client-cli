@@ -14,15 +14,15 @@ DEFAULT_CONFIG_PATH = Path(HOME) / Path('.zacc.ini')
 production = False
 
 
-def read_conf(filename, environment):
-    global production
+def read_conf(filename):
     config = configparser.ConfigParser()
     config.read(filename)
-    production = config[environment].get('production') == 'true'
     return config
 
 
 def get_headers(config, environment):
+    global production
+    production = config[environment].get('production') == 'true'
     try:
         bearer_data = {
             'client_id': config[environment]['client_id'],
@@ -147,7 +147,7 @@ def describe(resource, config_filename, environment):
         click.echo()
         raise click.ClickException('Exiting, bye.')
 
-    config = read_conf(config_filename, environment)
+    config = read_conf(config_filename)
     headers = get_headers(config, environment)
 
     response = get_resource(resource, headers)
@@ -187,7 +187,7 @@ def describe(resource, config_filename, environment):
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
 def bearer(config_filename, environment):
     """ Prints bearer than exits """
-    config = read_conf(config_filename, environment)
+    config = read_conf(config_filename)
     headers = get_headers(config, environment)
 
     click.echo(headers['Authorization'])
@@ -201,7 +201,7 @@ def bearer(config_filename, environment):
 @click.option('-m', '--max-retries', default=30, help='Maximum retries for query', type=click.INT)
 def query(config_filename, zoql, output, environment, max_retries):
     """ Run ZOQL Query """
-    config = read_conf(config_filename, environment)
+    config = read_conf(config_filename)
     headers = get_headers(config, environment)
 
     # In order to check if file exists, first we check if it looks like a path,
