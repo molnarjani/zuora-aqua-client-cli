@@ -12,6 +12,7 @@ from pathlib import Path
 HOME = os.environ['HOME']
 DEFAULT_CONFIG_PATH = Path(HOME) / Path('.zacc.ini')
 
+
 def read_conf(filename):
     config = configparser.ConfigParser()
     config.read(filename)
