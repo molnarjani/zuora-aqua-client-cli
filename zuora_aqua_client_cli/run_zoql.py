@@ -7,11 +7,13 @@ import configparser
 import xml.etree.ElementTree as ET
 
 from .consts import ZUORA_RESOURCES
+from pathlib import Path
 
+HOME = os.environ['HOME']
+DEFAULT_CONFIG_PATH = Path(HOME) / Path('.zacc.ini')
 
 def read_conf(filename):
     config = configparser.ConfigParser()
-    # TODO: make it configurable (alternatively try to read it from some default places line ~/.zuora_oauth.ini)
     config.read(filename)
     return config
 
@@ -129,7 +131,7 @@ def get_resource(resource, headers, environment):
 
 @main.command()
 @click.argument('resource')
-@click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
+@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
 def describe(resource, config_filename, environment):
     """ List available fields of Zuora resource """
@@ -177,7 +179,7 @@ def describe(resource, config_filename, environment):
 
 
 @main.command()
-@click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
+@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
 def bearer(config_filename, environment):
     """ Prints bearer than exits """
@@ -188,7 +190,7 @@ def bearer(config_filename, environment):
 
 
 @main.command()
-@click.option('-c', '--config-filename', default='zuora_oauth.ini', help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
+@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
 @click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
