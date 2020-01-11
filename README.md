@@ -12,10 +12,60 @@ The executable will be installed to `/usr/local/bin/zacc`
 #### Linux
 `pip3 install zuora-aqua-client-cli`
 The executable will be installed to `~/.local/bin/zacc`
+
 Make sure `~/.local/bin/` is added to your `$PATH`
 
+# Configuration
+Configuration should be provided by the `-c /path/to/file` option.
+
+#### Example config
+```
+[prod]
+production = true
+client_id = <client_id>
+client_secret = <client_secret>
+
+[sandbox]
+production = false
+client_id = <client_id>
+client_secret = <client_secret>
+```
 
 # Usage
+
+#### Cheatsheet
+```
+# List fiels for resource
+$ zacc describe -c ~/.config.ini -e sandbox Account
+Account
+  AccountNumber - Account Number
+  AdditionalEmailAddresses - Additional Email Addresses
+  AllowInvoiceEdit - Allow Invoice Editing
+  AutoPay - Auto Pay
+  Balance - Account Balance
+  ...
+Related Objects
+  BillToContact<Contact> - Bill To
+  DefaultPaymentMethod<PaymentMethod> - Default Payment Method
+  ParentAccount<Account> - Parent Account
+  SoldToContact<Contact> - Sold To
+
+# Request a bearer token, then exit
+$ zacc bearer -c ~/.config.ini -e sandbox
+Bearer <bearer token>
+
+# Execute an AQuA job
+$ zacc query -c ~/.config.ini -e sandbox -z "select Account.Name from Account where Account.CreatedDate > '2019-01-10'"
+Account.Name
+John Doe
+Jane Doe
+
+# Execute an AQuA job from a ZOQL query file
+$ zacc query -c ~/.config.ini -e sandbox -z ~/query_names.zoql
+Account.Name
+John Doe
+Jane Doe
+```
 
 #### Zacc
 ```
