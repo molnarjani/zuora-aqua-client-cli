@@ -2,6 +2,19 @@
 
 Run ZOQL queries through AQuA from the command line
 
+
+# Installation
+
+#### Mac
+`pip3 install zuora-aqua-client-cli`
+The executable will be installed to `/usr/local/bin/zacc`
+
+#### Linux
+`pip3 install zuora-aqua-client-cli`
+The executable will be installed to `~/.local/bin/zacc`
+Make sure `~/.local/bin/` is added to your `$PATH`
+
+
 # Usage
 
 #### Zacc
