@@ -15,6 +15,7 @@ production = False
 
 
 def read_conf(filename, environment):
+    global production
     config = configparser.ConfigParser()
     config.read(filename)
     production = config[environment].get('production') == 'true'
