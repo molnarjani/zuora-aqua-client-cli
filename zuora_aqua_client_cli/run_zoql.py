@@ -136,7 +136,7 @@ def get_resource(resource, headers):
 @main.command()
 @click.argument('resource')
 @click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
-@click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
+@click.option('-e', '--environment', required=True, help='Zuora environment to execute on', show_default=True)
 def describe(resource, config_filename, environment):
     """ List available fields of Zuora resource """
     if resource not in ZUORA_RESOURCES:
@@ -184,7 +184,7 @@ def describe(resource, config_filename, environment):
 
 @main.command()
 @click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
-@click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
+@click.option('-e', '--environment', required=True, help='Zuora environment to execute on', show_default=True)
 def bearer(config_filename, environment):
     """ Prints bearer than exits """
     config = read_conf(config_filename)
@@ -197,7 +197,7 @@ def bearer(config_filename, environment):
 @click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
 @click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
-@click.option('-e', '--environment', default='local', help='Zuora environment to execute on', show_default=True, type=click.Choice(['prod', 'preprod', 'local']))
+@click.option('-e', '--environment', required=True, help='Zuora environment to execute on', show_default=True)
 @click.option('-m', '--max-retries', default=30, help='Maximum retries for query', type=click.INT)
 def query(config_filename, zoql, output, environment, max_retries):
     """ Run ZOQL Query """
