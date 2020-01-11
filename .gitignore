@@ -120,3 +120,6 @@ venv.bak/
 # zoql files
 *.zoql
 *.zql
+
+# vim
+*.swp
