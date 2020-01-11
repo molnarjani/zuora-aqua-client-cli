@@ -9,7 +9,7 @@ homepage = "https://github.com/molnarjani/zuora-aqua-client-cli"
 keywords = ['Zuora', 'ZOQL']
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3"
 requests = "^2.22"
 click = "^7.0"
 flake8 = "^3.7"
