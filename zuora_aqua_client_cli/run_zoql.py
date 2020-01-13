@@ -22,7 +22,7 @@ def read_conf(filename):
     return config
 
 
-def get_headers(config, environment=None):
+def get_headers(config, environment):
     global production
 
     if environment is None:
@@ -96,6 +96,13 @@ def start_job(zoql, headers):
 
 
 def poll_job(job_url, headers, max_retries):
+    """ Continuously polls the job until done
+        Unless max_retries is provided it polls until end of universe
+        otherwise tries it `max_retries` times
+
+        # TODO: Change timeout to actual timeout rather than # of times
+    """
+
     click.echo('Polling status...')
     status = 'pending'
     trial_count = 0
@@ -208,7 +215,7 @@ def bearer(config_filename, environment):
 @click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
 @click.option('-e', '--environment', help='Zuora environment to execute on')
-@click.option('-m', '--max-retries', default=30, help='Maximum retries for query', type=click.INT)
+@click.option('-m', '--max-retries', default=float('inf'), help='Maximum retries for query', type=click.FLOAT)
 def query(config_filename, zoql, output, environment, max_retries):
     """ Run ZOQL Query """
     config = read_conf(config_filename)
