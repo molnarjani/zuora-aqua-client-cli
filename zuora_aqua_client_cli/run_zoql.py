@@ -263,3 +263,7 @@ def query(config_filename, zoql, output, environment, max_retries):
 
 if __name__ == '__main__':
     main()
+
+
+
+    print('test')
