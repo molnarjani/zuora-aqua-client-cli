@@ -16,6 +16,14 @@ default_environment = None
 production = False
 
 
+class Errors:
+    config = 'ConfigError'
+    retries_exceeded = 'RetriesExceededError'
+    invalid_zoql = 'InvalidZOQLError'
+    resource_not_found = 'ResourceNotFound'
+    file_not_exists = 'FileNotExists'
+
+
 def read_conf(filename):
     config = configparser.ConfigParser()
     config.read(filename)
@@ -40,7 +48,12 @@ def get_headers(config, environment):
         }
     except KeyError:
         environments = ', '.join(config.sections())
-        raise click.ClickException(f"Environment '{environment}' not found! Environments configured: {environments}")
+        error = f"""
+        Environment '{environment}' not found!
+        Environments configured: {environments}
+        """
+        click.echo(click.style(error, fg='red'))
+        raise click.ClickException(Errors.config)
 
     bearer_token = get_bearer_token(bearer_data)
     headers = {
@@ -90,7 +103,7 @@ def start_job(zoql, headers):
         click.echo(click.style(f"Started job with ID: {job_id}", fg='green'))
     except KeyError:
         click.echo(click.style(r.text, fg='red'))
-        raise click.ClickException('Exiting, bye.')
+        raise click.ClickException(Errors.invalid_zoql)
 
     return job_url
 
@@ -119,8 +132,13 @@ def poll_job(job_url, headers, max_retries):
 
         trial_count = trial_count + 1
         if trial_count >= MAX_TRIALS:
-            click.echo(click.style("Max trials exceeded! You can increase it by '-m [number of retries]' option.", fg='red'))
-            raise click.ClickException('Exiting, bye.')
+            error = """
+            Max trials exceeded!
+            You can increase it by '-m [number of retries]' option.
+            If '-m' is not provided it will poll until job is finished.
+            """
+            click.echo(click.style(error, fg='red'))
+            raise click.ClickException(Errors.retries_exceeded)
 
     file_id = r.json()['batches'][0]['fileId']
     file_url = 'https://zuora.com/apps/api/file/{}'.format(file_id) if production else 'https://apisandbox.zuora.com/apps/api/file/{}'.format(file_id)
@@ -162,7 +180,7 @@ def describe(resource, config_filename, environment):
             click.echo(click.style(resource, fg='green'))
 
         click.echo()
-        raise click.ClickException('Exiting, bye.')
+        raise click.ClickException(Errors.resource_not_found)
 
     config = read_conf(config_filename)
     headers = get_headers(config, environment)
@@ -229,7 +247,7 @@ def query(config_filename, zoql, output, environment, max_retries):
             zoql = read_zoql_file(zoql)
         else:
             click.echo(click.style(f"File does not exist '{zoql}'", fg='red'))
-            raise click.ClickException('Exiting, bye.')
+            raise click.ClickException(Errors.file_not_exists)
 
     # TODO: Make reuqest session instead of 3 separate requests
     # TODO: Pass headers to request session
