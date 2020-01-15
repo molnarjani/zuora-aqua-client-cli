@@ -17,11 +17,12 @@ production = False
 
 
 class Errors:
-    config = 'ConfigError'
+    config_not_found = 'ConfigNotFoundError'
     retries_exceeded = 'RetriesExceededError'
     invalid_zoql = 'InvalidZOQLError'
     resource_not_found = 'ResourceNotFound'
     file_not_exists = 'FileNotExists'
+    environment_not_found = 'EnvironmentNotFoundError'
 
 
 def read_conf(filename):
@@ -32,15 +33,52 @@ def read_conf(filename):
 
 def get_headers(config, environment):
     global production
+    if not config.sections():
+        error = f"""
+        Configuration not found or empty!
+        Please create config in $HOME/.zacc.ini or explicitly pass using the '-c /path/to/config' option!
+
+        Sample configuration:
+
+        # Cli settings
+        [zacc]
+        # In case the environment is not passed use 'env1' section
+        default_environment = env1
+
+        [env1]
+        client_id = client1
+        client_secret = secret1
+
+        [env2]
+        # Uses the production Zuora endpoints instead of the apisandbox
+        production = true
+        client_id = client2
+        client_secret = secret2
+        """
+        click.echo(click.style(error, fg='red'))
+        raise click.ClickException(Errors.config_not_found)
 
     if environment is None:
         try:
             environment = config.get('zacc', 'default_environment')
-        except configparser.NoOptionError:
-            pass
+        except (configparser.NoOptionError, configparser.NoSectionError):
+            error = f"""
+        No environment passed, no default environment set!
+        Please set a default environment by adding
+
+        [zacc]
+        default_environment = <environment_section>
+
+        to your configuration, or pass environment explicity using the '-e' flag.
+            """
+            click.echo(click.style(error, fg='red'))
+            raise click.ClickException(Errors.environment_not_found)
 
     # Throw away config-only section, as it is not a real environment
-    del config['zacc']
+    try:
+        del config['zacc']
+    except KeyError:
+        pass
 
     try:
         production = config[environment].get('production') == 'true'
@@ -56,7 +94,7 @@ def get_headers(config, environment):
         Environments configured: {environments}
         """
         click.echo(click.style(error, fg='red'))
-        raise click.ClickException(Errors.config)
+        raise click.ClickException(Errors.environment_not_found)
 
     bearer_token = get_bearer_token(bearer_data)
     headers = {
@@ -156,6 +194,7 @@ def write_to_output_file(outfile, content):
         out.write(content)
 
 
+# TODO: Move config and environment options here, as they are currently duplicated between the commands
 @click.group()
 def main():
     pass
@@ -170,7 +209,7 @@ def get_resource(resource, headers):
 
 @main.command()
 @click.argument('resource')
-@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
+@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=False), show_default=True)
 @click.option('-e', '--environment', help='Zuora environment to execute on')
 def describe(resource, config_filename, environment):
     """ List available fields of Zuora resource """
@@ -191,7 +230,7 @@ def describe(resource, config_filename, environment):
     fields = root[2]
     related_objects = root[3]
 
-    click.echo(resource_name)
+    click.echo(click.style(resource_name, fg='green'))
     for child in fields:
         name = ''
         label = ''
@@ -201,9 +240,9 @@ def describe(resource, config_filename, environment):
             elif field.tag == 'label':
                 label = field.text
 
-        click.echo(f'  {name} - {label}')
+        click.echo(click.style(f'  {name} - {label}', fg='green'))
 
-    click.echo('Related Objects')
+    click.echo(click.style('Related Objects', fg='green'))
     for child in related_objects:
         name = ''
         label = ''
@@ -214,22 +253,22 @@ def describe(resource, config_filename, environment):
             elif field.tag == 'label':
                 label = field.text
 
-        click.echo(f'  {name}<{object_type}> - {label}')
+        click.echo(click.style(f'  {name}<{object_type}> - {label}', fg='green'))
 
 
 @main.command()
-@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
+@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=False), show_default=True)
 @click.option('-e', '--environment', help='Zuora environment to execute on')
 def bearer(config_filename, environment):
     """ Prints bearer than exits """
     config = read_conf(config_filename)
     headers = get_headers(config, environment)
 
-    click.echo(headers['Authorization'])
+    click.echo(click.style(headers['Authorization'], fg='green'))
 
 
 @main.command()
-@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=True), show_default=True)
+@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=False), show_default=True)
 @click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
 @click.option('-e', '--environment', help='Zuora environment to execute on')
