@@ -65,11 +65,9 @@ def get_headers(config, environment):
 
 
 def get_bearer_token(bearer_data):
-    click.echo('Obtaining bearer token...')
     url = 'https://rest.zuora.com/oauth/token' if production else 'https://rest.apisandbox.zuora.com/oauth/token'
     r = requests.post(url, data=bearer_data)
     r.raise_for_status()
-    click.echo(click.style('Success!', fg='green'))
     bearer_token = r.json()['access_token']
     return bearer_token
 
@@ -100,7 +98,6 @@ def start_job(zoql, headers):
     try:
         job_id = r.json()['id']
         job_url = query_url + '/jobs/{}'.format(job_id)
-        click.echo(click.style(f"Started job with ID: {job_id}", fg='green'))
     except KeyError:
         click.echo(click.style(r.text, fg='red'))
         raise click.ClickException(Errors.invalid_zoql)
