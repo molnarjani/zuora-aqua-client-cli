@@ -39,6 +39,9 @@ def get_headers(config, environment):
         except configparser.NoOptionError:
             pass
 
+    # Throw away config-only section, as it is not a real environment
+    del config['zacc']
+
     try:
         production = config[environment].get('production') == 'true'
         bearer_data = {
