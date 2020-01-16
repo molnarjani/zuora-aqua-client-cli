@@ -13,10 +13,10 @@ class ZuoraClient(object):
         self.set_headers()
 
     def set_headers(self):
-        bearer_token = self.get_bearer_token()
-        self.headers = {
+        self.bearer_token = self.get_bearer_token()
+        self._headers = {
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {bearer_token}'
+            'Authorization': f'Bearer {self.bearer_token}'
         }
 
     def get_bearer_token(self):
@@ -31,8 +31,8 @@ class ZuoraClient(object):
         return bearer_token
 
     def query(self, zoql):
-        self.job_url = self.start_job(zoql)
-        self.file_url = self.poll_job()
+        self._job_url = self.start_job(zoql)
+        self._file_url = self.poll_job()
         self.content = self.get_file_content()
 
         return self.content
@@ -50,16 +50,16 @@ class ZuoraClient(object):
             }]
         }
         query_url = self.base_api_url + '/v1/batch-query/'
-        r = requests.post(query_url, json=query_payload, headers=self.headers)
+        r = requests.post(query_url, json=query_payload, headers=self._headers)
         r.raise_for_status()
 
         try:
             job_id = r.json()['id']
-            job_url = query_url + '/jobs/{}'.format(job_id)
+            _job_url = query_url + '/jobs/{}'.format(job_id)
         except KeyError:
             raise ValueError(r.text)
 
-        return job_url
+        return _job_url
 
     def poll_job(self):
         """ Continuously polls the job until done
@@ -72,7 +72,7 @@ class ZuoraClient(object):
         status = 'pending'
         trial_count = 0
         while status != 'completed':
-            r = requests.get(self.job_url, headers=self.headers)
+            r = requests.get(self._job_url, headers=self._headers)
             r.raise_for_status()
             status = r.json()['status']
             if status == 'completed':
@@ -90,10 +90,10 @@ class ZuoraClient(object):
         return file_url
 
     def get_file_content(self):
-        r = requests.get(self.file_url, headers=self.headers)
+        r = requests.get(self._file_url, headers=self._headers)
         return r.content.decode("utf-8")
 
     def get_resource(self, resource):
-        r = requests.get(self.base_api_url + f'/v1/describe/{resource}', headers=self.headers)
+        r = requests.get(self.base_api_url + f'/v1/describe/{resource}', headers=self._headers)
         r.raise_for_status()
         return r.text

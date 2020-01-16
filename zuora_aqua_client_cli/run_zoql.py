@@ -169,7 +169,7 @@ def bearer(config_filename, environment):
     config = read_conf(config_filename)
     client_id, client_secret, is_production = get_client_data(config, environment)
     zuora_client = ZuoraClient(client_id, client_secret, is_production)
-    click.echo(click.style(zuora_client.headers['Authorization'], fg='green'))
+    click.echo(click.style(zuora_client._headers['Authorization'], fg='green'))
 
 
 @main.command()
