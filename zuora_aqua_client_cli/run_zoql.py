@@ -1,13 +1,11 @@
 import os
-import time
 import click
-import requests
-
 import configparser
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 from .consts import ZUORA_RESOURCES
-from pathlib import Path
+from .api import ZuoraClient
 
 HOME = os.environ['HOME']
 DEFAULT_CONFIG_PATH = Path(HOME) / Path('.zacc.ini')
@@ -25,13 +23,19 @@ class Errors:
     environment_not_found = 'EnvironmentNotFoundError'
 
 
+# TODO: Move config and environment options here, as they are currently duplicated between the commands
+@click.group()
+def main():
+    pass
+
+
 def read_conf(filename):
     config = configparser.ConfigParser()
     config.read(filename)
     return config
 
 
-def get_headers(config, environment):
+def get_client_data(config, environment):
     global production
     if not config.sections():
         error = f"""
@@ -81,12 +85,9 @@ def get_headers(config, environment):
         pass
 
     try:
-        production = config[environment].get('production') == 'true'
-        bearer_data = {
-            'client_id': config[environment]['client_id'],
-            'client_secret': config[environment]['client_secret'],
-            'grant_type': 'client_credentials'
-        }
+        is_production = config[environment].get('production') == 'true'
+        client_id = config[environment]['client_id'],
+        client_secret = config[environment]['client_secret'],
     except KeyError:
         environments = ', '.join(config.sections())
         error = f"""
@@ -96,21 +97,7 @@ def get_headers(config, environment):
         click.echo(click.style(error, fg='red'))
         raise click.ClickException(Errors.environment_not_found)
 
-    bearer_token = get_bearer_token(bearer_data)
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {bearer_token}'
-    }
-
-    return headers
-
-
-def get_bearer_token(bearer_data):
-    url = 'https://rest.zuora.com/oauth/token' if production else 'https://rest.apisandbox.zuora.com/oauth/token'
-    r = requests.post(url, data=bearer_data)
-    r.raise_for_status()
-    bearer_token = r.json()['access_token']
-    return bearer_token
+    return client_id, client_secret, is_production
 
 
 def read_zoql_file(filename):
@@ -119,92 +106,9 @@ def read_zoql_file(filename):
         return '\n'.join(lines)
 
 
-def start_job(zoql, headers):
-    query_url = "https://rest.zuora.com/v1/batch-query/" if production else "https://rest.apisandbox.zuora.com/v1/batch-query/"
-    query_payload = {
-        "format": "csv",
-        "version": "1.1",
-        "encrypted": "none",
-        "useQueryLabels": "true",
-        "dateTimeUtc": "true",
-        "queries": [{
-            "query": zoql,
-            "type": "zoqlexport"
-        }]
-    }
-
-    r = requests.post(query_url, json=query_payload, headers=headers)
-    r.raise_for_status()
-
-    try:
-        job_id = r.json()['id']
-        job_url = query_url + '/jobs/{}'.format(job_id)
-    except KeyError:
-        click.echo(click.style(r.text, fg='red'))
-        raise click.ClickException(Errors.invalid_zoql)
-
-    return job_url
-
-
-def poll_job(job_url, headers, max_retries):
-    """ Continuously polls the job until done
-        Unless max_retries is provided it polls until end of universe
-        otherwise tries it `max_retries` times
-
-        # TODO: Change timeout to actual timeout rather than # of times
-    """
-
-    click.echo('Polling status...')
-    status = 'pending'
-    trial_count = 0
-    MAX_TRIALS = max_retries
-    while status != 'completed':
-        r = requests.get(job_url, headers=headers)
-        r.raise_for_status()
-        status = r.json()['status']
-        click.echo(f'Job status: {status}...')
-        if status == 'completed':
-            break
-
-        time.sleep(1)
-
-        trial_count = trial_count + 1
-        if trial_count >= MAX_TRIALS:
-            error = """
-            Max trials exceeded!
-            You can increase it by '-m [number of retries]' option.
-            If '-m' is not provided it will poll until job is finished.
-            """
-            click.echo(click.style(error, fg='red'))
-            raise click.ClickException(Errors.retries_exceeded)
-
-    file_id = r.json()['batches'][0]['fileId']
-    file_url = 'https://zuora.com/apps/api/file/{}'.format(file_id) if production else 'https://apisandbox.zuora.com/apps/api/file/{}'.format(file_id)
-
-    return file_url
-
-
-def get_file_content(file_url, headers):
-    r = requests.get(file_url, headers=headers)
-    return r.content.decode("utf-8")
-
-
 def write_to_output_file(outfile, content):
     with open(outfile, 'w+') as out:
         out.write(content)
-
-
-# TODO: Move config and environment options here, as they are currently duplicated between the commands
-@click.group()
-def main():
-    pass
-
-
-def get_resource(resource, headers):
-    url = f'https://rest.zuora.com/v1/describe/{resource}' if production else f'https://rest.apisandbox.zuora.com/v1/describe/{resource}'
-    r = requests.get(url, headers=headers)
-    r.raise_for_status()
-    return r.text
 
 
 @main.command()
@@ -216,15 +120,16 @@ def describe(resource, config_filename, environment):
     if resource not in ZUORA_RESOURCES:
         click.echo(click.style(f"Resource cannot be found '{resource}', available resources:", fg='red'))
         for resource in ZUORA_RESOURCES:
-            click.echo(click.style(resource, fg='green'))
+            click.echo(click.style(resource))
 
         click.echo()
         raise click.ClickException(Errors.resource_not_found)
 
     config = read_conf(config_filename)
-    headers = get_headers(config, environment)
+    client_id, client_secret, is_production = get_client_data(config, environment)
+    zuora_client = ZuoraClient(client_id, client_secret, is_production)
 
-    response = get_resource(resource, headers)
+    response = zuora_client.get_resource(resource)
     root = ET.fromstring(response)
     resource_name = root[1].text
     fields = root[2]
@@ -262,9 +167,9 @@ def describe(resource, config_filename, environment):
 def bearer(config_filename, environment):
     """ Prints bearer than exits """
     config = read_conf(config_filename)
-    headers = get_headers(config, environment)
-
-    click.echo(click.style(headers['Authorization'], fg='green'))
+    client_id, client_secret, is_production = get_client_data(config, environment)
+    zuora_client = ZuoraClient(client_id, client_secret, is_production)
+    click.echo(click.style(zuora_client.headers['Authorization'], fg='green'))
 
 
 @main.command()
@@ -276,7 +181,8 @@ def bearer(config_filename, environment):
 def query(config_filename, zoql, output, environment, max_retries):
     """ Run ZOQL Query """
     config = read_conf(config_filename)
-    headers = get_headers(config, environment)
+    client_id, client_secret, is_production = get_client_data(config, environment)
+    zuora_client = ZuoraClient(client_id, client_secret, is_production, max_retries)
 
     # In order to check if file exists, first we check if it looks like a path,
     # by checking if the dirname is valid, then check if the file exists.
@@ -288,11 +194,22 @@ def query(config_filename, zoql, output, environment, max_retries):
             click.echo(click.style(f"File does not exist '{zoql}'", fg='red'))
             raise click.ClickException(Errors.file_not_exists)
 
+    try:
+        content = zuora_client.query(zoql)
+    except ValueError as e:
+        click.echo(click.style(str(e), fg='red'))
+        raise click.ClickException(Errors.invalid_zoql)
+    except TimeoutError:
+        error = """
+        Max trials exceeded!
+        You can increase it by '-m [number of retries]' option.
+        If '-m' is not provided it will poll until job is finished.
+        """
+        click.echo(click.style(error, fg='red'))
+        raise click.ClickException(Errors.retries_exceeded)
+
     # TODO: Make reuqest session instead of 3 separate requests
     # TODO: Pass headers to request session
-    job_url = start_job(zoql, headers)
-    file_url = poll_job(job_url, headers, max_retries)
-    content = get_file_content(file_url, headers)
 
     if output is not None:
         write_to_output_file(output, content)
