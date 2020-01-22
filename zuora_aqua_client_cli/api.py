@@ -27,10 +27,13 @@ class ZuoraClient(object):
         }
         try:
             r = requests.post(self.base_api_url + '/oauth/token', data=payload)
+            r.raise_for_status()
             bearer_token = r.json()['access_token']
         except requests.exceptions.ConnectionError as e:
             # raise more generic error so CLI does not have to know about implementations of API
             raise TimeoutError(e)
+        except requests.exceptions.HTTPError as e:
+            raise ValueError(e)
         return bearer_token
 
     def query(self, zoql):

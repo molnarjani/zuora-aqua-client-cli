@@ -115,6 +115,15 @@ def cli(ctx, config_filename, environment):
         """
         click.echo(click.style(error, fg='red'))
         raise click.ClickException(Errors.connection_error)
+    except ValueError as e:
+        error = f"""
+        Authentication error, please check you credentials!
+        Message from Zuora:
+            {e.__context__.response.text}
+        """
+
+        click.echo(click.style(error, fg='red'))
+        raise click.ClickException(Errors.connection_error)
 
     ctx.obj = zuora_client
 
