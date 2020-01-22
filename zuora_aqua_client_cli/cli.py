@@ -23,12 +23,6 @@ class Errors:
     environment_not_found = 'EnvironmentNotFoundError'
 
 
-# TODO: Move config and environment options here, as they are currently duplicated between the commands
-@click.group()
-def main():
-    pass
-
-
 def read_conf(filename):
     config = configparser.ConfigParser()
     config.read(filename)
@@ -100,6 +94,20 @@ def get_client_data(config, environment):
     return client_id, client_secret, is_production
 
 
+@click.group()
+@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=False), show_default=True)
+@click.option('-e', '--environment', help='Zuora environment to execute on')
+@click.pass_context
+def cli(ctx, config_filename, environment):
+    """ Sets up an API client, passes to commands in context """
+    ctx.ensure_object(dict)
+    config = read_conf(config_filename)
+    client_id, client_secret, is_production = get_client_data(config, environment)
+    zuora_client = ZuoraClient(client_id, client_secret, is_production)
+    ctx.obj['zuora_client'] = zuora_client
+
+
+
 def read_zoql_file(filename):
     with open(filename, 'r') as f:
         lines = [l.strip() for l in f.readlines()]
@@ -111,11 +119,10 @@ def write_to_output_file(outfile, content):
         out.write(content)
 
 
-@main.command()
+@cli.command()
+@click.pass_context
 @click.argument('resource')
-@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=False), show_default=True)
-@click.option('-e', '--environment', help='Zuora environment to execute on')
-def describe(resource, config_filename, environment):
+def describe(ctx, resource):
     """ List available fields of Zuora resource """
     if resource not in ZUORA_RESOURCES:
         click.echo(click.style(f"Resource cannot be found '{resource}', available resources:", fg='red'))
@@ -125,10 +132,7 @@ def describe(resource, config_filename, environment):
         click.echo()
         raise click.ClickException(Errors.resource_not_found)
 
-    config = read_conf(config_filename)
-    client_id, client_secret, is_production = get_client_data(config, environment)
-    zuora_client = ZuoraClient(client_id, client_secret, is_production)
-
+    zuora_client = ctx.obj['zuora_client']
     response = zuora_client.get_resource(resource)
     root = ET.fromstring(response)
     resource_name = root[1].text
@@ -161,28 +165,22 @@ def describe(resource, config_filename, environment):
         click.echo(click.style(f'  {name}<{object_type}> - {label}', fg='green'))
 
 
-@main.command()
-@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=False), show_default=True)
-@click.option('-e', '--environment', help='Zuora environment to execute on')
-def bearer(config_filename, environment):
+@cli.command()
+@click.pass_context
+def bearer(ctx):
     """ Prints bearer than exits """
-    config = read_conf(config_filename)
-    client_id, client_secret, is_production = get_client_data(config, environment)
-    zuora_client = ZuoraClient(client_id, client_secret, is_production)
+    zuora_client = ctx.obj['zuora_client']
     click.echo(click.style(zuora_client._headers['Authorization'], fg='green'))
 
 
-@main.command()
-@click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=False), show_default=True)
+@cli.command()
+@click.pass_context
 @click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
-@click.option('-e', '--environment', help='Zuora environment to execute on')
 @click.option('-m', '--max-retries', default=float('inf'), help='Maximum retries for query', type=click.FLOAT)
-def query(config_filename, zoql, output, environment, max_retries):
+def query(ctx, zoql, output, max_retries):
     """ Run ZOQL Query """
-    config = read_conf(config_filename)
-    client_id, client_secret, is_production = get_client_data(config, environment)
-    zuora_client = ZuoraClient(client_id, client_secret, is_production, max_retries)
+    zuora_client = ctx.obj['zuora_client']
 
     # In order to check if file exists, first we check if it looks like a path,
     # by checking if the dirname is valid, then check if the file exists.
@@ -218,4 +216,4 @@ def query(config_filename, zoql, output, environment, max_retries):
 
 
 if __name__ == '__main__':
-    main()
+    cli(obj={})
