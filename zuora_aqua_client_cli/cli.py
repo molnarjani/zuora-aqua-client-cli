@@ -100,12 +100,10 @@ def get_client_data(config, environment):
 @click.pass_context
 def cli(ctx, config_filename, environment):
     """ Sets up an API client, passes to commands in context """
-    ctx.ensure_object(dict)
     config = read_conf(config_filename)
     client_id, client_secret, is_production = get_client_data(config, environment)
     zuora_client = ZuoraClient(client_id, client_secret, is_production)
-    ctx.obj['zuora_client'] = zuora_client
-
+    ctx.obj = zuora_client
 
 
 def read_zoql_file(filename):
@@ -120,9 +118,9 @@ def write_to_output_file(outfile, content):
 
 
 @cli.command()
-@click.pass_context
+@click.pass_obj
 @click.argument('resource')
-def describe(ctx, resource):
+def describe(zuora_client, resource):
     """ List available fields of Zuora resource """
     if resource not in ZUORA_RESOURCES:
         click.echo(click.style(f"Resource cannot be found '{resource}', available resources:", fg='red'))
@@ -132,7 +130,6 @@ def describe(ctx, resource):
         click.echo()
         raise click.ClickException(Errors.resource_not_found)
 
-    zuora_client = ctx.obj['zuora_client']
     response = zuora_client.get_resource(resource)
     root = ET.fromstring(response)
     resource_name = root[1].text
@@ -166,21 +163,19 @@ def describe(ctx, resource):
 
 
 @cli.command()
-@click.pass_context
-def bearer(ctx):
+@click.pass_obj
+def bearer(zuora_client):
     """ Prints bearer than exits """
-    zuora_client = ctx.obj['zuora_client']
     click.echo(click.style(zuora_client._headers['Authorization'], fg='green'))
 
 
 @cli.command()
-@click.pass_context
+@click.pass_obj
 @click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
 @click.option('-m', '--max-retries', default=float('inf'), help='Maximum retries for query', type=click.FLOAT)
-def query(ctx, zoql, output, max_retries):
+def query(zuora_client, zoql, output, max_retries):
     """ Run ZOQL Query """
-    zuora_client = ctx.obj['zuora_client']
 
     # In order to check if file exists, first we check if it looks like a path,
     # by checking if the dirname is valid, then check if the file exists.
@@ -216,4 +211,4 @@ def query(ctx, zoql, output, max_retries):
 
 
 if __name__ == '__main__':
-    cli(obj={})
+    cli()
