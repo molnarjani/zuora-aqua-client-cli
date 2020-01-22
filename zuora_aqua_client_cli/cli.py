@@ -21,6 +21,7 @@ class Errors:
     resource_not_found = 'ResourceNotFound'
     file_not_exists = 'FileNotExists'
     environment_not_found = 'EnvironmentNotFoundError'
+    connection_error = 'ConnectionError'
 
 
 def read_conf(filename):
@@ -102,7 +103,19 @@ def cli(ctx, config_filename, environment):
     """ Sets up an API client, passes to commands in context """
     config = read_conf(config_filename)
     client_id, client_secret, is_production = get_client_data(config, environment)
-    zuora_client = ZuoraClient(client_id, client_secret, is_production)
+    try:
+        zuora_client = ZuoraClient(client_id, client_secret, is_production)
+    except TimeoutError:
+        error = """
+        Connection error, please check you network connection!
+        Tips:
+          - Are you connected to network?
+          - Can you resolve 'rest.zuora.com'?
+          - Can you reach Zuora servers?
+        """
+        click.echo(click.style(error, fg='red'))
+        raise click.ClickException(Errors.connection_error)
+
     ctx.obj = zuora_client
 
 
