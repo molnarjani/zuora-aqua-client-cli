@@ -19,7 +19,7 @@ pytest = "^3.0"
 ipdb = "^0.12.2"
 
 [tool.poetry.scripts]
-zacc = "zuora_aqua_client_cli.run_zoql:main"
+zacc = "zuora_aqua_client_cli.cli:main"
 
 [build-system]
 requires = ["poetry>=0.12"]
