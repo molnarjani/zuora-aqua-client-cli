@@ -18,17 +18,23 @@ Make sure `~/.local/bin/` is added to your `$PATH`
 # Configuration
 Configuration should be provided by the `-c /path/to/file` option.
 
+If option is not provided, will be read from `~/.zacc.ini`
+
 #### Example config
 ```
-[prod]
-production = true
-client_id = <client_id>
-client_secret = <client_secret>
+[zacc]
+# When environement option is ommited the default environment will be used
+default_environment = preprod
 
-[sandbox]
-production = false
-client_id = <client_id>
-client_secret = <client_secret>
+[prod]
+# Use production Zuora endpoints, defaults to `false`
+production = true                                            
+client_id = <oauth_client_id>
+client_secret = <oauth_client_secret>
+
+[mysandbox]
+client_id = <oauth_client_id>
+client_secret = <oauth_client_secret>
 ```
 
 # Usage
@@ -36,7 +42,7 @@ client_secret = <client_secret>
 #### Cheatsheet
 ```
 # List fiels for resource
-$ zacc describe -c ~/.config.ini -e sandbox Account
+$ zacc describe Account
 Account
   AccountNumber - Account Number
   AdditionalEmailAddresses - Additional Email Addresses
@@ -51,28 +57,41 @@ Related Objects
   SoldToContact<Contact> - Sold To
 
 # Request a bearer token, then exit
-$ zacc bearer -c ~/.config.ini -e sandbox
-Bearer <bearer token>
+$ zacc bearer
+Bearer aaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 # Execute an AQuA job
-$ zacc query -c ~/.config.ini -e sandbox -z "select Account.Name from Account where Account.CreatedDate > '2019-01-10'"
+$ zacc query -z "select Account.Name from Account where Account.CreatedDate > '2019-01-10'"
 Account.Name
 John Doe
 Jane Doe
+
+# Save results to CSV file instead of printing it
+$ zacc query -z ~/query_names.zoql -o account_names.csv
 
 # Execute an AQuA job from a ZOQL query file
-$ zacc query -c ~/.config.ini -e sandbox -z ~/query_names.zoql
+$ zacc query -z ~/query_names.zoql
 Account.Name
 John Doe
 Jane Doe
+
+# Use different configurations than default
+$ zacc -c ~/.myotherzaccconfig.ini -e notdefualtenv query -z ~/query_names.zoql
 ```
 
-#### Zacc
+## Commands
+
+#### zacc
 ```
 Usage: zacc [OPTIONS] COMMAND [ARGS]...
 
+  Sets up an API client, passes to commands in context
+
 Options:
-  --help  Show this message and exit.
+  -c, --config-filename PATH  Config file containing Zuora ouath credentials
+                              [default: /Users/prezi/.zacc.ini]
+  -e, --environment TEXT      Zuora environment to execute on
+  --help                      Show this message and exit.
 
 Commands:
   bearer    Prints bearer than exits
@@ -80,54 +99,38 @@ Commands:
   query     Run ZOQL Query
 ```
 
-#### Query
+#### zacc query
 ```
 Usage: zacc query [OPTIONS]
 
   Run ZOQL Query
 
 Options:
-  -c, --config-filename PATH      Config file containing Zuora ouath
-                                  credentials  [default: zuora_oauth.ini]
-  -z, --zoql PATH                 ZOQL file to be executed  [default:
-                                  input.zoql]
-  -o, --output PATH               Where to write the output to, default is
-                                  STDOUT
-  -e, --environment [prod|preprod|local]
-                                  Zuora environment to execute on  [default:
-                                  local]
-  -m, --max-retries INTEGER       Maximum retries for query
-  --help                          Show this message and exit.
+  -z, --zoql TEXT          ZOQL file or query to be executed
+  -o, --output PATH        Where to write the output to, default is STDOUT
+  -m, --max-retries FLOAT  Maximum retries for query
+  --help                   Show this message and exit.
 ```
 
-#### Describe
+#### zacc describe
 ```
+zacc describe --help                                                                                                                      932ms  Thu Feb  6 14:58:13 2020
 Usage: zacc describe [OPTIONS] RESOURCE
 
   List available fields of Zuora resource
 
 Options:
-  -c, --config-filename PATH      Config file containing Zuora ouath
-                                  credentials  [default: zuora_oauth.ini]
-  -e, --environment [prod|preprod|local]
-                                  Zuora environment to execute on  [default:
-                                  local]
-  --help                          Show this message and exit.
+  --help  Show this message and exit.
 ```
 
-#### Bearer
+#### zacc bearer
 ```
 Usage: zacc bearer [OPTIONS]
 
   Prints bearer than exits
 
 Options:
-  -c, --config-filename PATH      Config file containing Zuora ouath
-                                  credentials  [default: zuora_oauth.ini]
-  -e, --environment [prod|preprod|local]
-                                  Zuora environment to execute on  [default:
-                                  local]
-  --help                          Show this message and exit.
+  --help  Show this message and exit.
 ```
 
 # Useful stuff
