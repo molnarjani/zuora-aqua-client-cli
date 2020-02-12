@@ -139,7 +139,6 @@ def write_to_output_file(outfile, content):
         out.write(content)
 
 
-@cli.command()
 @click.pass_obj
 @click.argument('resource')
 def describe(zuora_client, resource):
@@ -176,11 +175,10 @@ def describe(zuora_client, resource):
         label = ''
         object_type = child.items()[0][1].split('/')[-1]
         for field in child:
-            if field.tag == 'name':
-                name = field.text
-            elif field.tag == 'label':
+            if field.tag == 'label':
                 label = field.text
-
+            elif field.tag == 'name':
+                name = field.text
         click.echo(click.style(f'  {name}<{object_type}> - {label}', fg='green'))
 
 

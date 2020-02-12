@@ -86,14 +86,12 @@ class ZuoraClient(object):
 
             time.sleep(1)
 
-            trial_count = trial_count + 1
+            trial_count =+ 1
             if trial_count >= self.max_retries:
                 raise TimeoutError()
 
         file_id = r.json()['batches'][0]['fileId']
-        file_url = self.base_url + '/apps/api/file/{}'.format(file_id)
-
-        return file_url
+        return self.base_url + '/apps/api/file/{}'.format(file_id)
 
     def get_file_content(self):
         r = requests.get(self._file_url, headers=self._headers)
