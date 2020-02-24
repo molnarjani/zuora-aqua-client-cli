@@ -38,22 +38,23 @@ class ZuoraClient(object):
 
     def query(self, zoql):
         self._job_url = self.start_job(zoql)
-        self._file_url = self.poll_job()
-        self.content = self.get_file_content()
+        self._file_ids = self.poll_job()
+        self.content = []
+        for file_id in self._file_ids:
+            self.content.append(self.get_file_content(file_id))
 
         return self.content
 
-    def start_job(self, zoql):
+    def start_job(self, queries):
         query_payload = {
             "format": "csv",
             "version": "1.1",
             "encrypted": "none",
             "useQueryLabels": "true",
             "dateTimeUtc": "true",
-            "queries": [{
-                "query": zoql,
-                "type": "zoqlexport"
-            }]
+            "queries": [
+                {"query": query, "type": "zoqlexport"} for query in queries
+            ]
         }
         query_url = self.base_api_url + '/v1/batch-query/'
         r = requests.post(query_url, json=query_payload, headers=self._headers)
@@ -86,17 +87,15 @@ class ZuoraClient(object):
 
             time.sleep(1)
 
-            trial_count = trial_count + 1
+            trial_count += 1
             if trial_count >= self.max_retries:
                 raise TimeoutError()
 
-        file_id = r.json()['batches'][0]['fileId']
+        return map(lambda batch: batch['fileId'], r.json()['batches'])
+
+    def get_file_content(self, file_id):
         file_url = self.base_url + '/apps/api/file/{}'.format(file_id)
-
-        return file_url
-
-    def get_file_content(self):
-        r = requests.get(self._file_url, headers=self._headers)
+        r = requests.get(file_url, headers=self._headers)
         return r.content.decode("utf-8")
 
     def get_resource(self, resource):

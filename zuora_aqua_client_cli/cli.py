@@ -130,13 +130,12 @@ def cli(ctx, config_filename, environment):
 
 def read_zoql_file(filename):
     with open(filename, 'r') as f:
-        lines = [l.strip() for l in f.readlines()]
-        return '\n'.join(lines)
+        return f.read().split('\n\n')
 
 
 def write_to_output_file(outfile, content):
     with open(outfile, 'w+') as out:
-        out.write(content)
+        out.write('\n'.join(content))
 
 
 @cli.command()
@@ -210,6 +209,8 @@ def query(zuora_client, zoql, output, max_retries):
             `zacc query test.zql`
             `zacc query /tmp/test.zql`
 
+            File can contain on or more queries separated with 1 empty line between 2 queries
+
         :param
             -- output: output filename to write the file to
             -- max-retries: after how many retries to stop polling (if the query takes too long)
@@ -228,6 +229,9 @@ def query(zuora_client, zoql, output, max_retries):
             raise click.ClickException(Errors.file_not_exists)
 
     try:
+        # Transform to list of one element if it's an inline query
+        zoql = zoql if isinstance(zoql, list) else [zoql]
+
         content = zuora_client.query(zoql)
     except ValueError as e:
         click.echo(click.style(str(e), fg='red'))
@@ -247,7 +251,7 @@ def query(zuora_client, zoql, output, max_retries):
     if output is not None:
         write_to_output_file(output, content)
     else:
-        click.echo(click.style(content, fg='green'))
+        click.echo(click.style('\n'.join(content), fg='green'))
 
 
 if __name__ == '__main__':
