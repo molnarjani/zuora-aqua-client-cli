@@ -193,16 +193,34 @@ def bearer(zuora_client):
 
 @cli.command()
 @click.pass_obj
-@click.option('-z', '--zoql', help='ZOQL file or query to be executed', type=str)
+@click.argument('zoql')
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
 @click.option('-m', '--max-retries', default=float('inf'), help='Maximum retries for query', type=click.FLOAT)
 def query(zuora_client, zoql, output, max_retries):
-    """ Run ZOQL Query """
+    """ Run ZOQL Query
+
+        :arg
+            - zoql: Filename or inline query string
+
+            as inline query:
+            `zacc query "select ... from ..."` - query is read as inline query, argument is passed to query as is
+
+            as path:
+            `zacc query ~/test.zql`
+            `zacc query test.zql`
+            `zacc query /tmp/test.zql`
+
+        :param
+            -- output: output filename to write the file to
+            -- max-retries: after how many retries to stop polling (if the query takes too long)
+
+
+    """
 
     # In order to check if file exists, first we check if it looks like a path,
     # by checking if the dirname is valid, then check if the file exists.
     # If we would only check if the file exist, we'd pass the filename as an inline ZOQL query
-    if os.path.exists(os.path.dirname(zoql)):
+    if os.path.exists(os.path.dirname(zoql)) or Path(Path.cwd() / zoql).exists():
         if os.path.isfile(zoql):
             zoql = read_zoql_file(zoql)
         else:
