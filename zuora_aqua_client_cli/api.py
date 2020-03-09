@@ -22,14 +22,8 @@ class ZuoraClient(object):
         self.project = project
         self.project_prefix = project_prefix
         self.partner = partner
-        self.base_url = (
-            "https://zuora.com" if self.is_prod else "https://apisandbox.zuora.com"
-        )
-        self.base_api_url = (
-            "https://rest.zuora.com"
-            if self.is_prod
-            else "https://rest.apisandbox.zuora.com"
-        )
+        self.base_url = "https://zuora.com" if self.is_prod else "https://apisandbox.zuora.com"
+        self.base_api_url = "https://rest.zuora.com" if self.is_prod else "https://rest.apisandbox.zuora.com"
         self.set_headers()
 
     def set_headers(self):
@@ -129,8 +123,6 @@ class ZuoraClient(object):
         return r.content.decode("utf-8")
 
     def get_resource(self, resource):
-        r = requests.get(
-            self.base_api_url + f"/v1/describe/{resource}", headers=self._headers
-        )
+        r = requests.get(self.base_api_url + f"/v1/describe/{resource}", headers=self._headers)
         r.raise_for_status()
         return r.text

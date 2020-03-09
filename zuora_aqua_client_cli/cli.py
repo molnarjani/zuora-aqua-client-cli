@@ -121,16 +121,10 @@ def get_client_data(config, environment):
 @click.option("--project-prefix", help="Project prefix")
 @click.option("--partner", help="Partner name")
 @click.option(
-    "-m",
-    "--max-retries",
-    default=float("inf"),
-    help="Maximum retries for query",
-    type=click.FLOAT,
+    "-m", "--max-retries", default=float("inf"), help="Maximum retries for query", type=click.FLOAT,
 )
 @click.pass_context
-def cli(
-    ctx, config_filename, environment, project, project_prefix, partner, max_retries
-):
+def cli(ctx, config_filename, environment, project, project_prefix, partner, max_retries):
     """ Sets up an API client, passes to commands in context """
     config = read_conf(config_filename)
     (
@@ -149,9 +143,7 @@ def cli(
             max_retries=max_retries,
             partner=default_partner if default_partner else partner,
             project=default_project if default_project else project,
-            project_prefix=default_project_prefix
-            if default_project_prefix
-            else project_prefix,
+            project_prefix=default_project_prefix if default_project_prefix else project_prefix,
         )
     except TimeoutError:
         error = """
@@ -192,11 +184,7 @@ def write_to_output_file(outfile, content):
 def describe(zuora_client, resource):
     """ List available fields of Zuora resource """
     if resource not in ZUORA_RESOURCES:
-        click.echo(
-            click.style(
-                f"Resource cannot be found '{resource}', available resources:", fg="red"
-            )
-        )
+        click.echo(click.style(f"Resource cannot be found '{resource}', available resources:", fg="red"))
         for resource in ZUORA_RESOURCES:
             click.echo(click.style(resource))
 
