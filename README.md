@@ -66,22 +66,22 @@ $ zacc bearer
 Bearer aaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 # Execute an AQuA job
-$ zacc query -z "select Account.Name from Account where Account.CreatedDate > '2019-01-10'"
+$ zacc query "select Account.Name from Account where Account.CreatedDate > '2019-01-10'"
 Account.Name
 John Doe
 Jane Doe
 
 # Save results to CSV file instead of printing it
-$ zacc query -z ~/query_names.zoql -o account_names.csv
+$ zacc query ~/query_names.zoql -o account_names.csv
 
 # Execute an AQuA job from a ZOQL query file
-$ zacc query -z ~/query_names.zoql
+$ zacc query ~/query_names.zoql
 Account.Name
 John Doe
 Jane Doe
 
 # Use different configurations than default
-$ zacc -c ~/.myotherzaccconfig.ini -e notdefualtenv query -z ~/query_names.zoql
+$ zacc -c ~/.myotherzaccconfig.ini -e notdefualtenv query ~/query_names.zoql
 ```
 
 ## Commands
@@ -94,8 +94,12 @@ Usage: zacc [OPTIONS] COMMAND [ARGS]...
 
 Options:
   -c, --config-filename PATH  Config file containing Zuora ouath credentials
-                              [default: /Users/prezi/.zacc.ini]
+                              [default: /Users/janosmolnar/.zacc.ini]
+
   -e, --environment TEXT      Zuora environment to execute on
+  --project TEXT              Project name
+  --partner TEXT              Partner name
+  -m, --max-retries FLOAT     Maximum retries for query
   --help                      Show this message and exit.
 
 Commands:
@@ -111,15 +115,12 @@ Usage: zacc query [OPTIONS]
   Run ZOQL Query
 
 Options:
-  -z, --zoql TEXT          ZOQL file or query to be executed
   -o, --output PATH        Where to write the output to, default is STDOUT
-  -m, --max-retries FLOAT  Maximum retries for query
   --help                   Show this message and exit.
 ```
 
 #### zacc describe
-```
-zacc describe --help                                                                                                                      932ms  Thu Feb  6 14:58:13 2020
+```                                                                                                     
 Usage: zacc describe [OPTIONS] RESOURCE
 
   List available fields of Zuora resource
@@ -140,4 +141,5 @@ Options:
 
 # Useful stuff
 Has a lot of graphs on Resource relationships:
+https://knowledgecenter.zuora.com/BB_Introducing_Z_Business/D_Zuora_Business_Objects_Relationship
 https://community.zuora.com/t5/Engineering-Blog/AQUA-An-Introduction-to-Join-Processing/ba-p/13262
