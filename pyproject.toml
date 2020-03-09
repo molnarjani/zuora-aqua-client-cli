@@ -25,3 +25,5 @@ zacc = "zuora_aqua_client_cli.cli:cli"
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
 
+[tool.black]
+max-line-length = 120
