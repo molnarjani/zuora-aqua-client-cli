@@ -1,14 +1,17 @@
 import time
+from datetime import datetime
+
 import requests
 
 
 class ZuoraClient(object):
-    def __init__(self, client_id, client_secret, is_prod=False, max_retries=float('inf'), project='', partner=''):
+    def __init__(self, client_id, client_secret, is_prod=False, max_retries=float('inf'), project='', project_prefix='', partner=''):
         self.client_id = client_id
         self.client_secret = client_secret
         self.is_prod = is_prod
         self.max_retries = max_retries
         self.project = project
+        self.project_prefix = project_prefix
         self.partner = partner
         self.base_url = 'https://zuora.com' if self.is_prod else 'https://apisandbox.zuora.com'
         self.base_api_url = 'https://rest.zuora.com' if self.is_prod else 'https://rest.apisandbox.zuora.com'
@@ -61,6 +64,9 @@ class ZuoraClient(object):
 
         if self.partner:
             query_payload['partner'] = self.partner
+
+        if self.project_prefix:
+            query_payload['project'] = '{prefix}_{timestamp}'.format(prefix=self.project_prefix, timestamp=datetime.now())
 
         if self.project:
             query_payload['project'] = self.project

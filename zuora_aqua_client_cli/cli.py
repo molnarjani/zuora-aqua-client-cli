@@ -51,6 +51,10 @@ def get_client_data(config, environment):
         # Optional partner and project fields can be configured per environment, see more on what these do:
         # https://knowledgecenter.zuora.com/Central_Platform/API/AB_Aggregate_Query_API/B_Submit_Query
         # partner = partner
+        # Adding project prefix will add only a prefix to the project, so it's easy to identify
+        # but will add a timestamp to it so it's not hanging when multiple jobs are executed at the same time
+        # project_prefix = myproject
+        # If both 'project' and 'project_prefix' is defined, project takes precedence
         # project = myproject
 
         [env2]
@@ -90,6 +94,7 @@ def get_client_data(config, environment):
         client_secret = config[environment]['client_secret']
         partner = config[environment].get('partner')
         project = config[environment].get('project')
+        project_prefix = config[environment].get('project_prefix')
     except KeyError:
         environments = ', '.join(config.sections())
         error = f"""
@@ -99,20 +104,21 @@ def get_client_data(config, environment):
         click.echo(click.style(error, fg='red'))
         raise click.ClickException(Errors.environment_not_found)
 
-    return client_id, client_secret, is_production, partner, project
+    return client_id, client_secret, is_production, partner, project, project_prefix
 
 
 @click.group()
 @click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=False), show_default=True)
 @click.option('-e', '--environment', help='Zuora environment to execute on')
 @click.option('--project', help='Project name')
+@click.option('--project-prefix', help='Project prefix')
 @click.option('--partner', help='Partner name')
 @click.option('-m', '--max-retries', default=float('inf'), help='Maximum retries for query', type=click.FLOAT)
 @click.pass_context
-def cli(ctx, config_filename, environment, project, partner, max_retries):
+def cli(ctx, config_filename, environment, project, project_prefix, partner, max_retries):
     """ Sets up an API client, passes to commands in context """
     config = read_conf(config_filename)
-    client_id, client_secret, is_production, default_partner, default_project = get_client_data(config, environment)
+    client_id, client_secret, is_production, default_partner, default_project, default_project_prefix = get_client_data(config, environment)
     try:
         zuora_client = ZuoraClient(
             client_id=client_id,
@@ -120,7 +126,8 @@ def cli(ctx, config_filename, environment, project, partner, max_retries):
             is_prod=is_production,
             max_retries=max_retries,
             partner=default_partner if default_partner else partner,
-            project=default_project if default_project else project
+            project=default_project if default_project else project,
+            project_prefix=default_project_prefix if default_project_prefix else project_prefix
         )
     except TimeoutError:
         error = """
