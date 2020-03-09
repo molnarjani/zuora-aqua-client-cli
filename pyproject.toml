@@ -15,7 +15,7 @@ click = "^7.0"
 flake8 = "^3.7"
 
 [tool.poetry.dev-dependencies]
-black = { version = "*", allows-prereleases = true }
+black = { version = "*", allow-prereleases = true }
 pytest = "^3.0"
 ipdb = "^0.12.2"
 
