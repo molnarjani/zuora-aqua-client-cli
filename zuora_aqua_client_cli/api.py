@@ -3,11 +3,13 @@ import requests
 
 
 class ZuoraClient(object):
-    def __init__(self, client_id, client_secret, is_prod=False, max_retries=float('inf')):
+    def __init__(self, client_id, client_secret, is_prod=False, max_retries=float('inf'), project='', partner=''):
         self.client_id = client_id
         self.client_secret = client_secret
         self.is_prod = is_prod
         self.max_retries = max_retries
+        self.project = project
+        self.partner = partner
         self.base_url = 'https://zuora.com' if self.is_prod else 'https://apisandbox.zuora.com'
         self.base_api_url = 'https://rest.zuora.com' if self.is_prod else 'https://rest.apisandbox.zuora.com'
         self.set_headers()
@@ -56,6 +58,13 @@ class ZuoraClient(object):
                 {"query": query, "type": "zoqlexport"} for query in queries
             ]
         }
+
+        if self.partner:
+            query_payload['partner'] = self.partner
+
+        if self.project:
+            query_payload['project'] = self.project
+
         query_url = self.base_api_url + '/v1/batch-query/'
         r = requests.post(query_url, json=query_payload, headers=self._headers)
         r.raise_for_status()

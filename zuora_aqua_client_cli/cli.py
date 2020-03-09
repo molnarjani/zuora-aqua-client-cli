@@ -48,6 +48,11 @@ def get_client_data(config, environment):
         client_id = client1
         client_secret = secret1
 
+        # Optional partner and project fields can be configured per environment, see more on what these do:
+        # https://knowledgecenter.zuora.com/Central_Platform/API/AB_Aggregate_Query_API/B_Submit_Query
+        # partner = partner
+        # project = myproject
+
         [env2]
         # Uses the production Zuora endpoints instead of the apisandbox
         production = true
@@ -68,7 +73,7 @@ def get_client_data(config, environment):
         [zacc]
         default_environment = <environment_section>
 
-        to your configuration, or pass environment explicity using the '-e' flag.
+        to your configuration, or pass environment explicitly using the '-e' flag.
             """
             click.echo(click.style(error, fg='red'))
             raise click.ClickException(Errors.environment_not_found)
@@ -81,8 +86,10 @@ def get_client_data(config, environment):
 
     try:
         is_production = config[environment].get('production') == 'true'
-        client_id = config[environment]['client_id'],
-        client_secret = config[environment]['client_secret'],
+        client_id = config[environment]['client_id']
+        client_secret = config[environment]['client_secret']
+        partner = config[environment].get('partner')
+        project = config[environment].get('project')
     except KeyError:
         environments = ', '.join(config.sections())
         error = f"""
@@ -92,19 +99,29 @@ def get_client_data(config, environment):
         click.echo(click.style(error, fg='red'))
         raise click.ClickException(Errors.environment_not_found)
 
-    return client_id, client_secret, is_production
+    return client_id, client_secret, is_production, partner, project
 
 
 @click.group()
 @click.option('-c', '--config-filename', default=DEFAULT_CONFIG_PATH, help='Config file containing Zuora ouath credentials', type=click.Path(exists=False), show_default=True)
 @click.option('-e', '--environment', help='Zuora environment to execute on')
+@click.option('--project', help='Project name')
+@click.option('--partner', help='Partner name')
+@click.option('-m', '--max-retries', default=float('inf'), help='Maximum retries for query', type=click.FLOAT)
 @click.pass_context
-def cli(ctx, config_filename, environment):
+def cli(ctx, config_filename, environment, project, partner, max_retries):
     """ Sets up an API client, passes to commands in context """
     config = read_conf(config_filename)
-    client_id, client_secret, is_production = get_client_data(config, environment)
+    client_id, client_secret, is_production, default_partner, default_project = get_client_data(config, environment)
     try:
-        zuora_client = ZuoraClient(client_id, client_secret, is_production)
+        zuora_client = ZuoraClient(
+            client_id=client_id,
+            client_secret=client_secret,
+            is_prod=is_production,
+            max_retries=max_retries,
+            partner=default_partner if default_partner else partner,
+            project=default_project if default_project else project
+        )
     except TimeoutError:
         error = """
         Connection error, please check you network connection!
@@ -194,8 +211,7 @@ def bearer(zuora_client):
 @click.pass_obj
 @click.argument('zoql')
 @click.option('-o', '--output', default=None, help='Where to write the output to, default is STDOUT', type=click.Path(), show_default=True)
-@click.option('-m', '--max-retries', default=float('inf'), help='Maximum retries for query', type=click.FLOAT)
-def query(zuora_client, zoql, output, max_retries):
+def query(zuora_client, zoql, output):
     """ Run ZOQL Query
 
         :arg
