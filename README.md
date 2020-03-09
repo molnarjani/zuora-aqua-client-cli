@@ -32,6 +32,11 @@ production = true
 client_id = <oauth_client_id>
 client_secret = <oauth_client_secret>
 
+# Optional partner and project fields can be configured per environment, see more on what these do:
+# https://knowledgecenter.zuora.com/Central_Platform/API/AB_Aggregate_Query_API/B_Submit_Query
+# partner = partner
+# project = myproject
+
 [mysandbox]
 client_id = <oauth_client_id>
 client_secret = <oauth_client_secret>
