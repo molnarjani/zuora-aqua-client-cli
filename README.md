@@ -139,6 +139,9 @@ Options:
   --help  Show this message and exit.
 ```
 
+# Example files
+[examples/](examples/)
+
 # Useful stuff
 Has a lot of graphs on Resource relationships:
 https://knowledgecenter.zuora.com/BB_Introducing_Z_Business/D_Zuora_Business_Objects_Relationship
