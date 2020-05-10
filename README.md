@@ -139,7 +139,27 @@ Options:
   --help  Show this message and exit.
 ```
 
-# Example files
+# File queries
+File queries are the same as one inline queries, just saved to a file.
+```
+$ cat examples/query.zql
+select Account.Name from Account where Account.CreatedDate > '2019-01-10' limit 1
+
+$ zacc -e prod examples/query.zql
+```
+
+With file queries it's poossible to have multiple queries in one file.
+The queries have to be separated by exactly 1 newline between them.
+```
+$ cat examples/multi_query.zql
+select Account.Name from Account where Account.CreatedDate > '2019-01-10' limit 1
+
+select Account.Name from Account where Account.CreatedDate > '2019-02-10' limit 1
+
+$ zacc -e prod examples/multi_query.zql
+```
+
+#### Examples
 [examples/](examples/)
 
 # Useful stuff
