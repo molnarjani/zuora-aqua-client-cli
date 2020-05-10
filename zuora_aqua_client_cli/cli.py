@@ -267,7 +267,8 @@ def query(zuora_client, zoql, output):
     # In order to check if file exists, first we check if it looks like a path,
     # by checking if the dirname is valid, then check if the file exists.
     # If we would only check if the file exist, we'd pass the filename as an inline ZOQL query
-    if os.path.exists(os.path.dirname(zoql)) or Path(Path.cwd() / zoql).exists():
+    # Length is checked because it can cause OS Error if its too long, see: https://github.com/molnarjani/zuora-aqua-client-cli/issues/38
+    if len(zoql) < 255 and (os.path.exists(os.path.dirname(zoql)) or Path(Path.cwd() / zoql).exists()):
         if os.path.isfile(zoql):
             zoql = read_zoql_file(zoql)
         else:
