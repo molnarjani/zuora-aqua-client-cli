@@ -1,0 +1,1 @@
+select Account.Name from Account where Account.CreatedDate > '2019-01-10' limit 1
